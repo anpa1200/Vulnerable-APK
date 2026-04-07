@@ -1,0 +1,9 @@
+build/
+*.idsig
+*.jks
+*.keystore
+*.ab
+*.tar
+/tmp/
+.env
+*.class
