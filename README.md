@@ -15,6 +15,23 @@ Every vulnerability is documented in the source code with the attack vector, tes
 
 ---
 
+## Project Maturity Evidence
+
+| Area | Evidence |
+|---|---|
+| Build and install | [Quick Start](#quick-start), [`build.sh`](build.sh), [`requirements-dev.txt`](requirements-dev.txt) |
+| Lab coverage | [Vulnerability Coverage](#vulnerability-coverage), [`docs/VULNERABILITIES.md`](docs/VULNERABILITIES.md) |
+| Safety | [Responsible Use](#responsible-use), [safety model](docs/safety-model.md), [security policy](SECURITY.md) |
+| Validation | [validation plan](docs/validation-plan.md), lightweight tests in [`tests/`](tests/) |
+| Maintenance | [maintainers](MAINTAINERS.md), [roadmap](ROADMAP.md), [changelog](CHANGELOG.md), [contributing](CONTRIBUTING.md) |
+| Resubmission status | [curated-list resubmission plan](docs/curated-list-resubmission-plan.md) |
+
+Curated-list resubmission should wait for tagged releases, APK hashes, visible
+check history, and external usage feedback. The repository now documents the
+quality bar, but adoption evidence still requires time.
+
+---
+
 ## Vulnerability Coverage
 
 | # | Class | Component | CVSS |
@@ -46,8 +63,8 @@ Every vulnerability is documented in the source code with the attack vector, tes
 ### Build from source
 
 ```bash
-git clone https://github.com/youruser/vulnlab-apk
-cd vulnlab-apk
+git clone https://github.com/anpa1200/Vulnerable-APK.git
+cd Vulnerable-APK
 bash build.sh
 adb install VulnLab.apk
 ```
