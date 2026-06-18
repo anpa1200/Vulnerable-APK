@@ -4,6 +4,27 @@
 
 ---
 
+## Table of Contents
+
+- [Why Another Vulnerable App?](#why-another-vulnerable-app)
+- [The Build Pipeline](#the-build-pipeline)
+- [Vulnerability Classes](#vulnerability-classes)
+  - [11.1 — Exported Components & Unauthorized Admin Access](#111--exported-components--unauthorized-admin-access)
+  - [11.2 — Intent Redirection & PendingIntent Misuse](#112--intent-redirection--pendingintent-misuse)
+  - [11.3 — ContentProvider SQL Injection & Path Traversal](#113--contentprovider-sql-injection--path-traversal)
+  - [11.4 — Deep Link Parameter Injection & OAuth Token Hijacking](#114--deep-link-parameter-injection--oauth-token-hijacking)
+  - [11.5 — Broadcast Receiver Hijack](#115--broadcast-receiver-hijack)
+  - [11.6 — Insecure Data Storage (No Root Required)](#116--insecure-data-storage-no-root-required)
+  - [11.7 — Cryptography Failures](#117--cryptography-failures)
+  - [11.8 — Insecure WebView + JavaScript Bridge RCE](#118--insecure-webview--javascript-bridge-rce)
+  - [11.9 — Dynamic Code Loading](#119--dynamic-code-loading)
+- [Using APK Hunter for Automated Analysis](#using-apk-hunter-for-automated-analysis)
+- [Lab Setup](#lab-setup)
+- [Key Lessons](#key-lessons)
+- [Get the Code](#get-the-code)
+
+---
+
 When you are learning Android security, finding a real target to practice on is the hard part. Real apps have legal constraints, rate limits, and changing attack surfaces. Intentionally vulnerable apps like DIVA and InsecureBankv2 exist, but they are old, require Gradle to build, skip several vulnerability classes, and were not designed to reflect modern Android behavior (API 33+).
 
 So I built one from scratch.
@@ -279,7 +300,7 @@ This module demonstrates five distinct cryptographic failures that are common in
 ```java
 Cipher.getInstance("AES/ECB/PKCS5Padding")
 ```
-ECB mode encrypts each 16-byte block independently. Identical plaintext blocks produce identical ciphertext blocks — patterns leak through the ciphertext. Classic PoC: encrypting a bitmap with AES/ECB still shows the image outline.
+ECB mode encrypts each 16-byte block independently. Identical plaintext blocks produce identical ciphertext blocks — patterns leak through the ciphertext. The classic illustration of this is the "ECB penguin": a Linux penguin image encrypted with AES/ECB still reveals the penguin's outline because uniform color regions encrypt to uniform ciphertext blocks. This is a conceptual illustration of the structural weakness, not an Android-specific demo — the same principle applies any time structured data (user records, JSON fields, repeated tokens) is encrypted with ECB.
 
 **Static IV with AES/CBC:**
 ```java
@@ -347,7 +368,7 @@ adb shell am start -n com.vulnlab.insecureapp/.WebViewActivity \
     --es url "file:///data/data/com.vulnlab.insecureapp/files/poc.html"
 ```
 
-Real-world analogue: hybrid apps using Cordova or WebView bridges frequently expose similar functionality. This is a known critical class in the Android security ecosystem — CVE-2012-6636 was the original `addJavascriptInterface` RCE, patched in API 17, but the patterns around file access and custom bridges remain exploitable today.
+Real-world analogue: hybrid apps using Cordova or WebView bridges frequently expose similar functionality. This is a known critical class in the Android security ecosystem — CVE-2012-6636 was the original `addJavascriptInterface` RCE, which Google addressed in API 17 (Android 4.2) by restricting the bridge to methods annotated with `@JavascriptInterface`. However, API 17 only closed the unannotated-method reflection path; it did not prevent developers from intentionally exposing dangerous methods via `@JavascriptInterface`. The patterns around file access flags (`setAllowFileAccessFromFileURLs`, `setAllowUniversalAccessFromFileURLs`) and custom bridges with powerful capabilities remain fully exploitable on all modern Android versions when developers opt into them.
 
 ---
 
@@ -363,7 +384,7 @@ Class<?> plugin = loader.loadClass("com.vulnlab.plugin.UpdatePlugin");
 plugin.getMethod("run").invoke(plugin.newInstance());
 ```
 
-`/sdcard/` is world-writable. Any app on the device with `WRITE_EXTERNAL_STORAGE` — or an attacker with USB access — can place a malicious DEX at `/sdcard/vulnlab_plugins/update.dex`. The next time `DynamicCodeActivity` opens, it executes arbitrary code under `com.vulnlab.insecureapp`'s identity with all its permissions.
+The primary threat actor here is an attacker with USB/ADB access — they can push a malicious DEX directly to `/sdcard/vulnlab_plugins/update.dex` without any app permissions. On Android 10+ scoped storage limits what third-party apps can write to shared external storage, so the `WRITE_EXTERNAL_STORAGE` path is largely closed for installed apps on modern devices. The more realistic scenarios remain: physical access (USB), a pre-installed app with `MANAGE_EXTERNAL_STORAGE`, or a companion app that has been granted legacy storage access. The core issue — loading code from an unverified, user-writable path — is the vulnerability regardless of how the DEX gets there.
 
 Real-world analogue: this exact pattern was found in several popular apps using plugin architectures that loaded updates from external storage before their own integrity validation was added.
 
